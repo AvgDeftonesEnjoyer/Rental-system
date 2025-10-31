@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+
+# Envs
+venv/
+.venv/
+
+# Django/SQLite
+*.sqlite3
+db.sqlite3
+
+# Git & IDE
+.git/
+.gitignore
+.DS_Store
+.idea/
+.vscode/
+
+# Bytecode / cache
+.mypy_cache/
+.pytest_cache/
+
+

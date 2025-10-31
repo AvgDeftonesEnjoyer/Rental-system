@@ -3,9 +3,15 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 
 from rental.models import Scooter, Reservation, Rental, Tariff
+from .locks import lock_scope
 
 @transaction.atomic
 def start_rental(scooter_num, user):
+
+    lock_key = f'lock:start_rental:user:{user.id}:scooter:{scooter_num}'
+    with lock_scope(lock_key, ttl_seconds=5) as ok:
+        if not ok:
+            raise ValueError('Too many requests')
 
     now = timezone.now()
 
