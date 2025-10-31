@@ -20,13 +20,19 @@ from django.http import JsonResponse
 from rest_framework.routers import DefaultRouter
 
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rental.urls import router
 
 def ping(request):
     return JsonResponse({'status': 'ok'})
 
 urlpatterns = [
+    # JWT authentication
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    # Admin
     path('admin/', admin.site.urls),
+    # API
     path('api/ping/', ping),
     path('api/', include(router.urls)),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),

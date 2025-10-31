@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from datetime import timedelta
 from pathlib import Path
 
@@ -32,6 +33,18 @@ LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'Europe/Kyiv'
 USE_TZ = True
 
+STRIPE_API_KEY = os.environ.get('STRIPE_API_KEY')
+
+if not STRIPE_API_KEY:
+    raise ValueError('STRIPE_API_KEY is not set')
+
+STRIPE_WEBHOOK_SECRET = os.environ.get('STRIPE_WEBHOOK_SECRET')
+
+if not STRIPE_WEBHOOK_SECRET:
+    raise ValueError('STRIPE_WEBHOOK_SECRET is not set')
+
+RENTAL_CURRENCY = 'uah'
+RENTAL_HOLD_AMOUNT = 5000
 
 # Application definition
 
@@ -45,6 +58,7 @@ INSTALLED_APPS = [
     'rental',
     'rest_framework',
     'drf_spectacular',
+    'billing',
 ]
 
 MIDDLEWARE = [
@@ -76,6 +90,16 @@ TEMPLATES = [
 
 REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "user": "30/min",
+    },
 }
 
 WSGI_APPLICATION = 'scooters.wsgi.application'
@@ -110,23 +134,26 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Redis/Celery configuration
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://redis:6379/0')
+
 CACHES = {
     'default': {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://redis//127.0.0.1:6379/1",
-        "OPTIONS": {'CLIENT_CLASS': "django_redis.client.DefaultClient"},
-        "KEY_PREFIX": "scooters",
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': os.environ.get('REDIS_CACHE_URL', 'redis://redis:6379/1'),
+        'OPTIONS': {'CLIENT_CLASS': 'django_redis.client.DefaultClient'},
+        'KEY_PREFIX': 'scooters',
     }
 }
 
-CELERY_BROKER_URL = "redis://127.0.0.1:6379/0"
-CELERY_RESULT_BACKEND = "redis://127.0.0.1:6379/0"
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
 CELERY_TASK_ALWAYS_EAGER = False
 
-CELERY_BEAT_SCHEDULER = {
-    "expire_reservations_every_minute":{
-        "task": "rental.tasks.expire_reservations",
-        "schedule": timedelta(minutes=1),
+CELERY_BEAT_SCHEDULE = {
+    'expire_reservations_every_minute': {
+        'task': 'rental.tasks.expire_reservations',
+        'schedule': timedelta(minutes=1),
     }
 }
 

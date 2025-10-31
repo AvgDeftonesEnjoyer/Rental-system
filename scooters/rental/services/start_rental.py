@@ -1,9 +1,12 @@
+from decimal import Decimal
+
 from django.db import transaction
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
 from rental.models import Scooter, Reservation, Rental, Tariff
 from .locks import lock_scope
+from billing.models import Payment
 
 @transaction.atomic
 def start_rental(scooter_num, user):
@@ -48,6 +51,11 @@ def start_rental(scooter_num, user):
             total_minutes=0,
             total_cost=0,
         )
+        payment = Payment.objects.create(
+            rental=rental,
+            hold_amount=50,
+            status=Payment.Status.PENDING,
+        )
         return rental
 
     raise ValidationError(f'Scooter {scooter_num} is not available')
@@ -63,6 +71,11 @@ def end_rental(scooter_num, user):
     scooter = Scooter.objects.select_for_update().get(num=scooter_num)
     scooter.status = Scooter.Status.AVAILABLE
     scooter.save(update_fields=['status'])
+
+    payment = Payment.objects.get(rental=rental)
+    payment.final_amount = rental.total_cost
+    payment.status = Payment.Status.AUTHORIZED
+    payment.save(update_fields=['final_amount', 'status'])
 
     return rental
 

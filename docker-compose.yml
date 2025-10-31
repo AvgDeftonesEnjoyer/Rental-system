@@ -6,6 +6,48 @@ services:
     container_name: scooters_web
     ports:
       - "8000:8000"
+    environment:
+      - DJANGO_SETTINGS_MODULE=scooters.settings
+      - PYTHONUNBUFFERED=1
+      - REDIS_URL=redis://redis:6379/0
     volumes:
       - .:/app
-    command: sh -c "python scooters/manage.py migrate && python scooters/manage.py runserver 0.0.0.0:8000"
+    working_dir: /app/scooters
+    depends_on:
+      - redis
+    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+
+  worker:
+    build: .
+    container_name: scooters_worker
+    environment:
+      - DJANGO_SETTINGS_MODULE=scooters.settings
+      - REDIS_URL=redis://redis:6379/0
+      - PYTHONUNBUFFERED=1
+    working_dir: /app/scooters
+    command: celery -A scooters.celery:app worker -l info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+
+  beat:
+    build: .
+    container_name: scooters_beat
+    environment:
+      - DJANGO_SETTINGS_MODULE=scooters.settings
+      - REDIS_URL=redis://redis:6379/0
+      - PYTHONUNBUFFERED=1
+    working_dir: /app/scooters
+    command: celery -A scooters.celery:app beat -l info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: scooters_redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
