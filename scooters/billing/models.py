@@ -1,5 +1,4 @@
 from decimal import Decimal
-from unicodedata import decimal
 from django.db import models
 from django.conf import settings
 
@@ -28,7 +27,5 @@ class Payment(models.Model):
 
     hold_amount_minor = models.BigIntegerField(default=5000)
     final_amount_minor = models.BigIntegerField(default=0)
-
-    status = models.CharField(max_length=15, choices = Status.choices, default = Status.PENDING)
 
 # Create your models here.

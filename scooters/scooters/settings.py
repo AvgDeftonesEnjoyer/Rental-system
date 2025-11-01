@@ -44,7 +44,8 @@ if not STRIPE_WEBHOOK_SECRET:
     raise ValueError('STRIPE_WEBHOOK_SECRET is not set')
 
 RENTAL_CURRENCY = 'uah'
-RENTAL_HOLD_AMOUNT = 5000
+# Hold amount in major currency units (e.g., 50.00 = 50 UAH = 5000 kopiykas)
+RENTAL_HOLD_AMOUNT = 50.00
 
 # Application definition
 
